@@ -1,0 +1,803 @@
+https://cdnjs.cloudflare.com/ajax/libs/acorn/5.1.2/acorn.js
+
+%% mjs
+ext_resources/astring.js
+
+%% mjs
+(function(f) {window.acornES7 = f()})
+(function() {
+  return function(acorn) {
+    function getTokenType(p, loose) {
+      return loose ? p.tok.type : p.type;
+    }
+    
+    var extendsAcorn = function (pp) {
+      var loose = pp == (acorn.LooseParser && acorn.LooseParser.prototype);
+      
+      pp.readToken_dot = function() {
+        let next = this.input.charCodeAt(this.pos + 1)
+        if (next >= 48 && next <= 57) return this.readNumber(true)
+        switch(next){
+          case 43: // +
+            return this.finishOp(tt.broadcastPlus,2)
+          case 45: // -
+            return this.finishOp(tt.broadcastMinus,2)
+          case 42: // '*'
+            if (this.input.charCodeAt(this.pos + 2) === 42) { // '*'
+              return this.finishOp(tt.broadcastPow,3)
+            } else {
+            return this.finishOp(tt.broadcastMult,2)
+            }
+          case 47: // '/'
+            return this.finishOp(tt.broadcastDiv,2)
+          case 61: // =
+            if (this.input.charCodeAt(this.pos + 2) === 61) { // '='
+              return this.finishOp(tt.broadcastEq,3)
+            } else {
+            return this.finishOp(tt.broadcastAssign,2)
+            }
+          case 60: // <
+            if (this.input.charCodeAt(this.pos + 2) === 61) { // '='
+              return this.finishOp(tt.broadcastLte,3)
+            } else {
+            return this.finishOp(tt.broadcastLt,2)
+            }
+          case 62: // >
+            if (this.input.charCodeAt(this.pos + 2) === 61) { // '='
+              return this.finishOp(tt.broadcastGte,3)
+            } else {
+            return this.finishOp(tt.broadcastGt,2)
+            }
+          case 38: // &
+            return this.finishOp(tt.broadcastAnd,2)
+          case 124: // |
+            return this.finishOp(tt.broadcastOr,2)
+        }
+        let next2 = this.input.charCodeAt(this.pos + 2)
+        if (this.options.ecmaVersion >= 6 && next === 46 && next2 === 46) { // 46 = dot '.'
+          this.pos += 3
+          return this.finishToken(tt.ellipsis)
+        } else {
+          ++this.pos
+          return this.finishToken(tt.dot)
+        }
+      }
+      
+      pp.broadcastCodes = {}
+      // modify read number to ignore '.' in floats like "5." if the "." is followed by
+      // a broadcast operator char
+      pp.readNumber = function(startsWithDot) {
+        let start = this.pos
+        if (!startsWithDot && this.readInt(10) === null) this.raise(start, "Invalid number")
+        let octal = this.pos - start >= 2 && this.input.charCodeAt(start) === 48
+        if (octal && this.strict) this.raise(start, "Invalid number")
+        if (octal && /[89]/.test(this.input.slice(start, this.pos))) octal = false
+        let next = this.input.charCodeAt(this.pos)
+        if (next === 46 && !octal) { // '.'
+          let next1 = this.input.charCodeAt(this.pos+1)
+          if( ![42,45,47,124,38,60,62,61].includes(next1) ){
+            //43 +, 45 -, 42 *, 47 /, 124 |, 38 &, 60 <, 62 >, 61 =
+            //if it's not a broadcast operator, read it as a float
+            //in that case, immediately step pos forward and readInt from that pos
+            //that will continue to update this.pos until the end of the decimal is reached
+            ++this.pos
+            this.readInt(10)
+            next = next1
+          }
+        }
+        if ((next === 69 || next === 101) && !octal) { // 'eE'
+          next = this.input.charCodeAt(++this.pos)
+          if (next === 43 || next === 45) ++this.pos // '+-'
+          if (this.readInt(10) === null) this.raise(start, "Invalid number")
+        }
+        if (acorn.isIdentifierStart(this.fullCharCodeAtPos())) this.raise(this.pos, "Identifier directly after number")
+
+        let str = this.input.slice(start, this.pos)
+        let val = octal ? parseInt(str, 8) : parseFloat(str)
+        return this.finishToken(tt.num, val)
+      }
+      
+      return function(instance) {}
+    }
+    
+    var tt = acorn.tokTypes;
+    function binop(name, prec) {
+      return new acorn.TokenType(name, {beforeExpr: true, binop: prec})
+    }
+    tt.at = new acorn.TokenType('@'); 
+    //precedences copied from non-broadcast tokentypes, tho this may need additional thought
+    tt.broadcastPlus = binop(".+", 9);
+    tt.broadcastMinus = binop(".-", 9);
+    tt.broadcastMult = binop(".*", 10);
+    tt.broadcastDiv = binop("./", 10);
+    tt.broadcastPow = binop(".**", 11);
+    tt.broadcastEq = binop(".==", 6);
+    tt.broadcastLt = binop(".<", 7);
+    tt.broadcastGt = binop(".>", 7);
+    tt.broadcastLte = binop(".<=", 7);
+    tt.broadcastGte = binop(".>=", 7);
+    tt.broadcastAnd = binop(".&", 2);
+    tt.broadcastOr = binop(".|", 1);
+    tt.broadcastAssign = new acorn.TokenType(".=", {beforeExpr: true, isAssign: true}),
+    
+    // acorn 
+    acorn.plugins.es7 = extendsAcorn(acorn.Parser.prototype);
+    // acorn loose
+    if(acorn.LooseParser) acorn.pluginsLoose.es7 = extendsAcorn(acorn.LooseParser.prototype); 
+    return acorn;
+  }
+});
+
+acornES7(acorn)
+
+var code = `foo.mat(a,b)`; 
+
+var ast = acorn.parse(code,{
+    // Specify use of the plugin
+    plugins:{es7:true},
+    // Specify the ecmaVersion
+    ecmaVersion:7
+}) ;
+ast
+
+%% mjs
+acorn.parse("-5")
+
+%% mjs
+//https://github.com/jamen/estree-walk/blob/master/index.js
+
+const blacklistedKeys = [
+  'parent',
+]
+
+function walk (node, visitor) {
+  var all = typeof visitor === 'function'
+  var walking = true
+
+  function stop () {
+    walking = false
+  }
+
+  for (var queue = [node]; queue.length && walking;) {
+    node = queue.shift()
+    // Skip a missing node
+    if (!node) continue
+    // Execute visitor
+    var handle = all ? visitor : visitor[node.type]
+    if (handle) handle(node, stop)
+    // Continue walking
+    if (walking) step(node, queue)
+  }
+}
+
+function step (node, queue) {
+  var before = queue.length
+
+  // Enumerate keys for possible children
+  for (var key in node) {
+    if (blacklistedKeys.indexOf(key) >= 0) continue
+
+    var child = node[key]
+
+    if (child && child.type) {
+      queue.push(child)
+    }
+
+    if (Array.isArray(child)) {
+      for (var i = 0; i < child.length; i++) {
+        var item = child[i]
+        if (item && item.type) {
+          queue.push(item)
+        }
+      }
+    }
+  }
+
+  // Return whether any children were pushed
+  return queue.length !== before
+}
+
+%% mjs
+opToFuncMap = {
+  ".+": "broadcastPlus",
+  ".-": "broadcastMinus",
+  ".*": "broadcastMult",
+  "./": "broadcastDiv",
+  ".**": "broadcastPow",
+  ".==": "broadcastEq",
+  ".<": "broadcastLt",
+  ".>": "broadcastGt",
+  ".<=": "broadcastLte",
+  ".>=": "broadcastGte",
+  ".&": "broadcastAnd",
+  ".|": "broadcastOr",
+  ".=": "broadcastAssign",
+}
+
+%% mjs
+JSON.stringify(ast)
+
+%% mjs
+arrayLib = "nd"
+
+// function replaceOpsWithCalls(node){
+//   console.log("node",node.type)
+//   if (Object.keys(opToFuncMap).includes(node.operator)){
+//     node.type = "CallExpression"
+//     node.callee = {type:"Identifier",name: opToFuncMap[node.operator]}
+//     node.arguments = [node.left,node.right]
+//     delete node.left
+//     delete node.right
+//     delete node.operator
+//     console.log("node modified",node.type)
+//   }
+// }
+
+function replaceOpsWithCalls(node){
+  console.log("node",node.type)
+  if (Object.keys(opToFuncMap).includes(node.operator)){
+    node.type = "CallExpression"
+    node.callee = {
+      "type":"MemberExpression",
+      "object":{"type":"Identifier","name":arrayLib},
+      "property":{"type":"Identifier","name":opToFuncMap[node.operator]},
+      "computed":false,
+    }
+    node.arguments = [node.left,node.right]
+    delete node.left
+    delete node.right
+    delete node.operator
+    console.log("node modified",node.type)
+  }
+}
+
+visitor = {BinaryExpression: replaceOpsWithCalls,
+          AssignmentExpression: replaceOpsWithCalls}
+
+walk(ast, visitor)
+ast
+
+%% mjs
+"use matrix";
+
+function replaceBroadcastOps(code){
+  let ast = acorn.parse(code,{
+    // Specify use of the plugin
+    plugins:{es7:true},
+    // Specify the ecmaVersion
+    ecmaVersion:7
+  });
+  walk(ast, visitor)
+  return astring.generate(ast)
+}
+
+%% mjs
+["foo .= a./A",
+"A.*(b+c)"].map(replaceBroadcastOps).join("      ...      ")
+
+%% mjs
+// https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.5/require.min.js
+
+%% mjs
+https://rawgit.com/nicolaspanel/numjs/893016ec40e62eaaa126e1024dbe250aafb3014b/dist/numjs.min.js
+
+%% mjs
+nd = {}
+
+// nd.handleScalar = 
+// nd.broadcastPlus = function(x,y){
+//   if (_.isNumber(x) && _.isNumber(y)) {return x+y}
+//   //apparently scalars must be second
+//   else if (_.isNumber(x)) {nj.add(y,x)}
+//   else {nj.add(x,y)}
+// }
+// nd.broadcastMinus = function(x,y){
+//   if (_.isNumber(x) && _.isNumber(y)) {return x+y}
+//   //apparently scalars must be second
+//   else if (_.isNumber(x)) {nj.add(y,x)}
+//   else (_.isNumber(x)) {nj.add(x,y)}
+// }
+// // (x,y)=>nj.subtract(x,y)
+// nd.broadcastMult = function(x,y){
+//   if (_.isNumber(x) && _.isNumber(y)) {return x+y}
+//   //apparently scalars must be second
+//   else if (_.isNumber(x)) {nj.add(y,x)}
+//   else (_.isNumber(x)) {nj.add(x,y)}
+// }
+// // (x,y)=>nj.multiply(x,y)
+// nd.broadcastDiv = function(x,y){
+//   if (_.isNumber(x) && _.isNumber(y)) {return x+y}
+//   //apparently scalars must be second
+//   else if (_.isNumber(x)) {nj.add(y,x)}
+//   else (_.isNumber(x)) {nj.add(x,y)}
+// }
+// (x,y)=>nj.divide(x,y)
+// nd.broadcastPow = function(x,y){
+//   if (_.isNumber(x) && _.isNumber(y)) {return x+y}
+//   //apparently scalars must be second
+//   else if (_.isNumber(x)) {nj.add(y,x)}
+//   else (_.isNumber(x)) {nj.add(x,y)}
+// }
+// (x,y)=>nj.power(x,y)
+// nd.broadcastEq",
+// nd.broadcastLt",
+// nd.broadcastGt",
+// nd.broadcastLte",
+// nd.broadcastGte",
+// nd.broadcastAnd",
+// nd.broadcastOr",
+// nd.broadcastAssign",
+
+
+%% mjs
+A = [
+  [1,0,3],
+  [0,1,0],
+  [0,0,1]
+]
+U = [
+  [Math.random(),Math.random(),Math.random()],
+  [0,Math.random(),Math.random()],
+  [0,0,Math.random()]
+]
+R = (()=>nj.array([
+  [Math.random(),Math.random(),Math.random()],
+  [0,Math.random(),Math.random()],
+  [0,0,Math.random()]
+],"float64"))
+R1=R()
+b = 3
+c = Math.random()
+eval(replaceBroadcastOps("A.*(b+c)")).tolist()
+
+%% mjs
+B = nj.array(A,"float64")
+C = R1.clone().add(Math.random())
+C.tolist()
+
+%% mjs
+eval(replaceBroadcastOps("C1=B.*(R1.+b)"))
+C1.tolist()
+
+%% mjs
+eval(replaceBroadcastOps("D = R1.*b;"))
+eval(replaceBroadcastOps("D = b.*R1;"))
+// B.clone().add(C,true)
+D.tolist()
+
+%% mjs
+eval(replaceBroadcastOps("C=B.*(b+c)"))
+
+%% mjs
+eval(replaceBroadcastOps("(A.+(b+c)).**2")).tolist()
+
+%% mjs
+./ext_resources/ndarray.js
+./ext_resources/ndarray-ops.js
+
+%% mjs
+// nd.toList(eval(replaceBroadcastOps("5.+A")))
+eval(replaceBroadcastOps("5 .+A"))
+
+%% mjs
+nd = function(A){
+  if (Array.isArray(A) && Array.isArray(A[0])){
+    return ndarray(new Float64Array(Array.concat(...A)), [A.length,A[0].length] )
+  } else {return A}
+}
+
+nd.isNdarray = function(a){
+  if ("data" in a && "shape" in a && "stride" in a) {return true}
+  else {return false}
+}
+nd.zeros = function(size){
+  return ndarray(new Float64Array(size[0]*size[1]),size)
+}
+nd.ones = function(size){
+  return ndarray(new Float64Array(size[0]*size[1]).fill(1),size)
+}
+
+nd.toList = function(A){
+  if (!nd.isNdarray){return A}
+  out = []
+  o = A.offset  
+  let [i,j] = A.stride
+  // console.log(o,i,j,A.shape)
+  for (let row=0; row<A.shape[0];row++){
+    // console.log(o+row*i, o+row*(i+1) )
+    out.push(Array.from(A.data.slice(o+row*i, o+(row+1)*i)))
+  }
+  return out
+}
+
+nd.broadcastPlus = function(x,y){
+  if (_.isNumber(x) && _.isNumber(y)) {return x+y}
+  else if (_.isNumber(x) && nd.isNdarray(y)) {
+    arrOut = nd.zeros(y.shape)
+    return ndops.adds(arrOut,y,x)
+  } else if (_.isNumber(y) && nd.isNdarray(x)) {
+    arrOut = nd.zeros(x.shape)
+    return ndops.adds(arrOut,x,y)
+  } else if (nd.isNdarray(y) && nd.isNdarray(x)) {
+    arrOut = nd.zeros(x.shape)
+    return ndops.add(arrOut,x,y)
+  }
+  else { throw("inputs must be scalars or ndarrays")}
+}
+
+nd.broadcastMinus = function(x,y){
+  if (_.isNumber(x) && _.isNumber(y)) {return x-y}
+  else if (_.isNumber(x) && nd.isNdarray(y)) {
+    arrOut = nd.zeros(y.shape)
+    arrOut = ndops.neg(arrOut,y)
+    return ndops.addseq(arrOut,x)
+  } else if (_.isNumber(y) && nd.isNdarray(x)) {
+    arrOut = nd.zeros(x.shape)
+    return ndops.subs(arrOut,x,y)
+  } else if (nd.isNdarray(y) && nd.isNdarray(x)) {
+    arrOut = nd.zeros(x.shape)
+    return ndops.sub(arrOut,x,y)
+  }
+  else { throw("inputs must be scalars or ndarrays")}
+}
+
+
+
+
+%% mjs
+A = nd.ones([3,2])
+B_raw = [[1,0],[0,1],[2,2]]
+B = nd(B_raw)
+
+testExpressions = {
+  "A": [[1,1],[1,1],[1,1]],
+  "B": [[1,0],[0,1],[2,2]],
+  
+  "A.+3": [[4,4],[4,4],[4,4]],
+  "A.+A": [[2,2],[2,2],[2,2]],
+  "A.+B": [[2,1],[1,2],[3,3]],
+  "5 .+A": [[6,6],[6,6],[6,6]], // FIXME must have space between numeric and "."?
+  "0b101.+A": [[6,6],[6,6],[6,6]],
+}
+
+// testResults = []
+Object.keys(testExpressions)
+  .map(k=>
+		[k, _.isEqual( nd.toList(eval(replaceBroadcastOps(k))),
+                 testExpressions[k])? "pass":"fail" ]
+)
+
+
+%% mjs
+A = nd.ones([3,2])
+B_raw = [[1,0],[0,1],[2,2]]
+B = nd(B_raw)
+
+testExpressions = {
+  "A.-A": [[0,0],[0,0],[0,0]],
+  "A.-2": [[-1,-1],[-1,-1],[-1,-1]],
+  "1.-A": [[0,0],[0,0],[0,0]],
+  "A.-B": [[0,1],[1,0],[-1,-1]],
+}
+
+// testResults = []
+Object.keys(testExpressions)
+  .map(k=>
+		[k, _.isEqual( nd.toList(eval(replaceBroadcastOps(k))),
+                 testExpressions[k])? "pass":"fail" ]
+)
+
+
+%% mjs
+A = nd.ones([3,2])
+B_raw = [[1,0],[0,1],[2,2]]
+B = nd(B_raw)
+
+nd.broadcastMult = function(x,y){
+  if (_.isNumber(x) && _.isNumber(y)) {return x*y}
+  else if (_.isNumber(x) && nd.isNdarray(y)) {
+    arrOut = nd.zeros(y.shape)
+    // arrOut = ndops.neg(arrOut,y)
+    return ndops.muls(arrOut,y,x)
+  } else if (_.isNumber(y) && nd.isNdarray(x)) {
+    arrOut = nd.zeros(x.shape)
+    return ndops.muls(arrOut,x,y)
+  } else if (nd.isNdarray(y) && nd.isNdarray(x)) {
+    arrOut = nd.zeros(x.shape)
+    return ndops.mul(arrOut,x,y)
+  }
+  else { throw("inputs must be scalars or ndarrays")}
+}
+
+testExpressions = {
+  "A.*A": [[1,1],[1,1],[1,1]],
+  "A.*2": [[2,2],[2,2],[2,2]],
+  "2.*A": [[2,2],[2,2],[2,2]],
+  "A.*B": [[1,0],[0,1],[2,2]]
+}
+
+// testResults = []
+Object.keys(testExpressions)
+  .map(k=>
+		[k, _.isEqual( nd.toList(eval(replaceBroadcastOps(k))),
+                 testExpressions[k])? "pass":"fail" ]
+)
+
+
+%% mjs
+A = nd.ones([3,2])
+B_raw = [[1,0],[0,1],[2,2]]
+B = nd(B_raw)
+
+nd.broadcastMult = function(x,y){
+  if (_.isNumber(x) && _.isNumber(y)) {return x*y}
+  else if (_.isNumber(x) && nd.isNdarray(y)) {
+    arrOut = nd.zeros(y.shape)
+    // arrOut = ndops.neg(arrOut,y)
+    return ndops.muls(arrOut,y,x)
+  } else if (_.isNumber(y) && nd.isNdarray(x)) {
+    arrOut = nd.zeros(x.shape)
+    return ndops.muls(arrOut,x,y)
+  } else if (nd.isNdarray(y) && nd.isNdarray(x)) {
+    arrOut = nd.zeros(x.shape)
+    return ndops.mul(arrOut,x,y)
+  }
+  else { throw("inputs must be scalars or ndarrays")}
+}
+
+testExpressions = {
+  "A.*A": [[1,1],[1,1],[1,1]],
+  "A.*2": [[2,2],[2,2],[2,2]],
+  "2.*A": [[2,2],[2,2],[2,2]],
+  "A.*B": [[1,0],[0,1],[2,2]]
+}
+
+// testResults = []
+Object.keys(testExpressions)
+  .map(k=>
+		[k, _.isEqual( nd.toList(eval(replaceBroadcastOps(k))),
+                 testExpressions[k])? "pass":"fail" ]
+)
+
+
+%% mjs
+nd.broadcastPlus(5,5)
+nd.toList(nd.broadcastPlus(nd.ones([5,3]),3))
+nd.toList(nd.broadcastPlus(4,nd.ones([3,5])))
+// nd.toList(nd.broadcastPlus(nd.ones([5,5]),nd.ones([5,5])))
+
+%% mjs
+replaceBroadcastOps("")
+
+%% mjs
+## The stuff below is benchmarking code from Julia
+
+%% mjs
+function assert(t) { if (!t) { throw new Error("assertion failed"); } }
+
+function randFloat64(n) {
+    var v, i;
+    v = new Float64Array(n);
+
+    for (i = 0; i < n; i++) {
+        v[i] = Math.random();
+    }
+
+    return v;
+}
+
+// Transpose mxn matrix.
+function mattransp(A, m, n) {
+    var i, j, T;
+    T = new Float64Array(m * n);
+
+    for (i = 0; i < m; ++i) {
+        for (j = 0; j < n; ++j) {
+            T[j * m + i] = A[i * n + j];
+        }
+    }
+
+    return T;
+}
+
+function matmul(A,B,m,l,n) {
+    var C, i, j, k, total;
+    C = new Array(m*n);
+    i = 0;
+    j = 0;
+    k = 0;
+
+    // Use the transpose of B so that
+    // during the matrix multiplication
+    // we access consecutive memory locations.
+    // This is a fairer comparison of JS
+    // with the other languages which call on
+    // custom multiplication routines, which
+    // likely make use of such aligned memory.
+    B = mattransp(B,l,n);
+
+    for (i = 0; i < m; i++) {
+        for (j = 0; j < n; j++) {
+            total = 0.0;
+
+            for (k = 0; k < l; k++) {
+                total += A[i*l+k]*B[j*l+k];
+            }
+
+            C[i*n+j] = total;
+        }
+    }
+
+    return C;
+}
+
+
+n=1000
+A = randFloat64(n*n);
+B = randFloat64(n*n);
+
+tmin = Number.POSITIVE_INFINITY;
+t1 = window.performance.now()
+C1 = matmul(A, B, n, n, n);
+t = window.performance.now()-t1;
+console.log("matmul, " + t);
+
+
+
+
+%% mjs
+function matmul2(A,B,m,l,n) {
+    var C, i, j, k, total;
+    C = new Float64Array(m*n);
+    i = 0;
+    j = 0;
+    k = 0;
+
+    // Use the transpose of B so that
+    // during the matrix multiplication
+    // we access consecutive memory locations.
+    // This is a fairer comparison of JS
+    // with the other languages which call on
+    // custom multiplication routines, which
+    // likely make use of such aligned memory.
+    B = mattransp(B,l,n);
+
+    for (i = 0; i < m; i++) {
+        for (j = 0; j < n; j++) {
+            total = 0.0;
+            for (k = 0; k < l; k++) {
+                total += A[i*l+k]*B[j*l+k];
+            }
+            C[i*n+j] = total;
+        }
+    }
+    return C;
+}
+
+tmin = Number.POSITIVE_INFINITY;
+t1 = window.performance.now()
+C2 = matmul2(A, B, n, n, n);
+t = window.performance.now()-t1;
+console.log("matmul2, " + t);
+
+%% mjs
+function matmul3(A,B,m,l,n) {
+  m = +m
+  l = +l
+  n = +n
+    var C, i, j, k, total,il,jl,ixn;
+    C = new Float64Array(m*n);
+    i = 0|0;
+    j = 0|0;
+    k = 0|0;
+  total = +0.0;
+  il= 0|0;
+  jl= 0|0;
+  ixn= 0|0;
+
+  B = mattransp(B,l,n);
+
+    for (i = 0; i < m; i++) {
+        il = i*l;
+      	ixn = i*n;
+        for (j = 0; j < n; j++) {
+            total = 0.0;
+          	
+            jl = j*l;
+            for (k = 0; k < l; k++) {
+                total += A[il+k]*B[jl+k];
+            }
+            C[ixn+j] = total;
+        }
+    }
+    return C;
+}
+
+tmin = Number.POSITIVE_INFINITY;
+t1 = window.performance.now()
+C3 = matmul3(A, B, n, n, n);
+t = window.performance.now()-t1;
+console.log("matmul3, " + t);
+
+%% mjs
+
+
+%% mjs
+(class Matrix extends Float64Array {
+  constructor(){
+    console.log("new matrix")
+    //arguments must either be:
+    //(1) a single matrixLike, or (2) a data and shape
+    //
+    if (arguments.length==1 && Array.isArray(arguments[0])){     
+      if (Array.isArray(arguments[0][0])){
+        console.log("array of arrays")
+        // array of arrays
+        a = Array.concat(arguments[0])
+        if (a.length != (arguments[0].length * arguments[0][0].length)) {
+            throw "Array shapes are not consistent"
+            }
+        super(a)
+        this.shape = [arguments[0].length, arguments[0][0].length]
+        
+      } else {
+        // a plain array, which we'll treat as a column vector
+        console.log("column vector")
+      }
+    } else if (arguments.length==2 && Array.isArray(arguments[0])){     
+      if (typeof arguments[0]==="number"){
+        // fill with a number
+        console.log("fill with a number")
+        this.fill(arguments[0])
+        this.shape = arguments[1]
+      } else {
+        console.log("fill with a number")
+      }
+    }
+    
+    // this.stride = 
+  }
+})
+
+W0 =[[1,0],[0,1]]
+W = new Matrix(W0)
+W0
+
+%% mjs
+function Matrix(){
+  console.log("new matrix")
+  //arguments must either be:
+  //(1) a single matrixLike, or (2) a data scalar/vector and shape
+  if (arguments.length==1 && Array.isArray(arguments[0])){     
+    if (Array.isArray(arguments[0][0])){
+      console.log("array of arrays")
+      // array of arrays
+      console.log(arguments[0])
+      a = Array.concat(arguments[0])
+      console.log(a.length, arguments[0].length, arguments[0][0].length)
+      if (a.length != (arguments[0].length * arguments[0][0].length)) {
+          throw "Array shapes are not consistent"
+          }
+      Float64Array.call(this,a)
+      this.shape = [arguments[0].length, arguments[0][0].length]
+
+    } else {
+      // a plain array, which we'll treat as a column vector
+      console.log("column vector")
+    }
+  } else if (arguments.length==2 && Array.isArray(arguments[0])){     
+    if (typeof arguments[0]==="number"){
+      // fill with a number
+      console.log("fill with a number")
+      this.fill(arguments[0])
+      this.shape = arguments[1]
+    } else {
+      console.log("fill with a number")
+    }
+  }
+    
+}
+
+W0 =[[1,0],[0,1]]
+W = new Matrix(W0)
+W0
