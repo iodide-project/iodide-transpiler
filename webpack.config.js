@@ -14,7 +14,8 @@ var config = {
   watchOptions: {
     poll: true
   },
-  mode: 'development',
+  // mode: 'development',
+  mode: 'production',
 };
 
 module.exports = config;
