@@ -1,4 +1,6 @@
 import _ from 'lodash-es'
+import ndarray from 'ndarray'
+import ndops from 'ndarray-ops'
 
 const nd = function(A){
   if (Array.isArray(A) && Array.isArray(A[0])){
