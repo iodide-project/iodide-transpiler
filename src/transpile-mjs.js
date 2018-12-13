@@ -1,6 +1,6 @@
 // import * as ndarray from ndarray
 import * as acorn from 'acorn'
-import * as astring from "astring"
+import * as astring from 'astring'
 
 // (function(f) {window.acornES7 = f()})
 // (function() {
@@ -370,9 +370,9 @@ function replaceOpsWithCalls(node){
 var visitor = {BinaryExpression: replaceOpsWithCalls,
           AssignmentExpression: replaceOpsWithCalls}
 
-var tjsm = {}
+var mjs = {}
 
-tjsm.transpile = function(code){
+mjs.transpile = function(code){
     console.log("code in :",code)
   let ast = acorn.parse(code,{
     // Specify use of the plugin
@@ -384,4 +384,4 @@ tjsm.transpile = function(code){
   return astring.generate(ast)
 }
 
-export default tjsm
+export default mjs

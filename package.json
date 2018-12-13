@@ -1,0 +1,46 @@
+{
+  "name": "iodide-transpiler",
+  "version": "0.0.1",
+  "description": "math syntax experiments for iodide",
+  "main": "index.js",
+  "author": "brendan colloran",
+  "license": "Mozilla Public License 2.0",
+  "scripts": {
+    "test": "jest --no-cache",
+    "build": "./node_modules/.bin/webpack --watch"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "/node_modules/(?!test-component).+\\.js$"
+    ],
+    "globals": {
+      "window": true
+    }
+  },
+  "dependencies": {
+    "acorn": "6.0.4",
+    "astring": "1.3.1",
+    "lodash-es": "4.17.11"
+  },
+  "devDependencies": {
+    "babel-core": "6.26.3",
+    "babel-eslint": "10.0.1",
+    "babel-jest": "23.6.0",
+    "babel-loader": "7.1.5",
+    "babel-plugin-transform-class-properties": "6.24.1",
+    "babel-plugin-transform-es2015-modules-commonjs": "6.26.2",
+    "babel-preset-es2016": "6.24.1",
+    "eslint": "5.10.0",
+    "eslint-config-airbnb": "16.1.0",
+    "eslint-loader": "2.1.1",
+    "eslint-plugin-import": "2.14.0",
+    "eslint-plugin-jest": "22.1.2",
+    "jest": "23.6.0",
+    "jest-cli": "23.6.0",
+    "uglifyjs-webpack-plugin": "1.3.0",
+    "webpack": "4.27.1",
+    "webpack-cli": "3.1.2",
+    "webpack-dev-server": "3.1.10",
+    "webpack-merge": "4.1.5"
+  }
+}

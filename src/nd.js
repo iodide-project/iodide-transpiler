@@ -1,3 +1,5 @@
+import _ from 'lodash-es'
+
 nd = function(A){
   if (Array.isArray(A) && Array.isArray(A[0])){
     return ndarray(new Float64Array(Array.concat(...A)), [A.length,A[0].length] )
