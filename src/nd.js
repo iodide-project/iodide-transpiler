@@ -23,7 +23,7 @@ nd.ones = function(size){
 
 nd.toList = function(A){
   if (!nd.isNdarray){return A}
-  out = []
+  const out = []
   o = A.offset  
   let [i,j] = A.stride
   // console.log(o,i,j,A.shape)
@@ -35,6 +35,7 @@ nd.toList = function(A){
 }
 
 nd.broadcastPlus = function(x,y){
+  let arrOut
   if (_.isNumber(x) && _.isNumber(y)) {return x+y}
   else if (_.isNumber(x) && nd.isNdarray(y)) {
     arrOut = nd.zeros(y.shape)
@@ -50,6 +51,7 @@ nd.broadcastPlus = function(x,y){
 }
 
 nd.broadcastMinus = function(x,y){
+  let arrOut
   if (_.isNumber(x) && _.isNumber(y)) {return x-y}
   else if (_.isNumber(x) && nd.isNdarray(y)) {
     arrOut = nd.zeros(y.shape)
@@ -68,6 +70,7 @@ nd.broadcastMinus = function(x,y){
 
 
 nd.broadcastMult = function(x,y){
+  let arrOut
   if (_.isNumber(x) && _.isNumber(y)) {return x*y}
   else if (_.isNumber(x) && nd.isNdarray(y)) {
     arrOut = nd.zeros(y.shape)
@@ -85,6 +88,7 @@ nd.broadcastMult = function(x,y){
 
 
 nd.broadcastDiv = function(x,y){
+  let arrOut
   if (_.isNumber(x) && _.isNumber(y)) {return x/y}
   else if (_.isNumber(x) && nd.isNdarray(y)) {
     arrOut = nd.zeros(y.shape)
@@ -136,6 +140,7 @@ function matmul(A,B,m,l,n) {
 
 
 nd.matrixMult = function(x,y){
+  let arrOut
   if (nd.isNdarray(x) && nd.isNdarray(y)) {
     if (x.shape[1]===y.shape[0]){
       arrOut = ndarray(matmul(x.data,y.data,x.shape[0],x.shape[1],y.shape[1]),
