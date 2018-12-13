@@ -8,6 +8,7 @@ window.mjs.evalMjs = (code) => {
   eval(mjs.transpile(code))
 }
 
+Promise.resolve()
 
 
 // const loadResource = url => new Promise((resolve) => {
