@@ -1,6 +1,6 @@
 import _ from 'lodash-es'
 
-nd = function(A){
+const nd = function(A){
   if (Array.isArray(A) && Array.isArray(A[0])){
     return ndarray(new Float64Array(Array.concat(...A)), [A.length,A[0].length] )
   } else {return A}
@@ -144,3 +144,5 @@ nd.matrixMult = function(x,y){
   }
   else { throw("inputs must ndarrays") }
 }
+
+export default nd
