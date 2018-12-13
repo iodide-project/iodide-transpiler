@@ -4,7 +4,7 @@ import nd from './nd'
 window.mjs = mjs
 window.nd = nd
 
-window.evalMjs = (code) => {
+window.mjs.evalMjs = (code) => {
   eval(mjs.transpile(code))
 }
 
