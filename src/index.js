@@ -4,9 +4,7 @@ import nd from './nd'
 window.mjs = mjs
 window.nd = nd
 
-window.mjs.evalMjs = (code) => {
-  eval(mjs.transpile(code))
-}
+window.mjs.evalMjs = code => eval(mjs.transpile(code))
 
 Promise.resolve()
 

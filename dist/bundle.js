@@ -38200,9 +38200,7 @@ __webpack_require__.r(__webpack_exports__);
 window.mjs = _transpile_mjs__WEBPACK_IMPORTED_MODULE_0__["default"]
 window.nd = _nd__WEBPACK_IMPORTED_MODULE_1__["default"]
 
-window.mjs.evalMjs = (code) => {
-  eval(_transpile_mjs__WEBPACK_IMPORTED_MODULE_0__["default"].transpile(code))
-}
+window.mjs.evalMjs = code => eval(_transpile_mjs__WEBPACK_IMPORTED_MODULE_0__["default"].transpile(code))
 
 Promise.resolve()
 
