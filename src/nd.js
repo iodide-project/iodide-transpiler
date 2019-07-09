@@ -4,7 +4,7 @@ import ndops from 'ndarray-ops'
 
 const nd = function(A){
   if (Array.isArray(A) && Array.isArray(A[0])){
-    return ndarray(new Float64Array(Array.concat(...A)), [A.length,A[0].length] )
+    return ndarray(new Float64Array(A[0].concat(...A.slice(1))), [A.length,A[0].length] )
   } else {return A}
 }
 
