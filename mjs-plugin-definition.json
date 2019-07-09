@@ -1,0 +1,9 @@
+{
+"languageId": "mjs",
+"displayName": "mjs",
+"codeMirrorMode": "js",
+"url": "https://raw.githubusercontent.com/iodide-project/iodide-transpiler/master/dist/bundle.js",
+"module": "mjs",
+"evaluator": "evalMjs",
+"pluginType": "language"
+}
