@@ -18,7 +18,7 @@
     }
   },
   "dependencies": {
-    "acorn": "5.2.1",
+    "acorn": "5.7.4",
     "astring": "1.2.0",
     "lodash-es": "4.17.11",
     "ndarray": "^1.0.18",
