@@ -20,7 +20,7 @@
   "dependencies": {
     "acorn": "5.2.1",
     "astring": "1.2.0",
-    "lodash-es": "4.17.11",
+    "lodash-es": "4.17.21",
     "ndarray": "^1.0.18",
     "ndarray-ops": "^1.2.2"
   },
